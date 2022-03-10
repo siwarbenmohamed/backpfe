@@ -3,7 +3,7 @@ const bcrypt = require("bcryptjs");
 const Freelancer = require("../models/freelancer");
 const Client = require("../models/client");
 const jwt = require("jsonwebtoken");
-const config = require("../middleware/config.json");
+const {secret} = require("../middleware/config.json");
 
 exports.signup =  async (req, res) => {
     //checking if user email already exixts
@@ -56,108 +56,94 @@ exports.signup =  async (req, res) => {
 */
 
 exports.signin = async (req, res) =>{
-     User.findOne({
-      email: req.body.email
-  }, function(err, user) {
-      if (err) throw err;
-
-      if (!user) {
-
-         Freelancer.findOne({
-              email: req.body.email
-          }, function(err, user) {
-              if (err) throw err;
-
-              if (!user) {
-                  return res.send({
-                      success: false,
-                      msg: 'Authentication failed. User not found.',
-                  });
-                  //  console.log(msg);
-
-              } else {
-                  // check if password matches
-                    bcrypt.compare(req.body.password, user.password, function(err, isMatch) {
-                      if (isMatch && !err) {
-                          // if user is found and password is right create a token
-                          var token = jwt.sign({_id: user._id, role: user.role}, config.secret,
-                          {   expiresIn: '1h',
-                          });
-                          // return the information including token as JSON
-                           res.json({
-                              success: true,
-                              token: token,
-                              role: 'freelancer',
-                              user:user
-                          });
-                      } else {
-                          return res.send({
-                              success: false,
-                              msg: 'Authentication failed. Wrong password.'
-                          });
-                      }
-                  });
-              }
-          }),
-           Client.findOne({
-              email: req.body.email
-          }, function(err, user) {
-              if (err) throw err;
-
-              if (!user) {
-                 return res.send({
-                      success: false,
-                      msg: 'Authentication failed. User not found.',
-                  });
-                  //  console.log(msg);
-
-              } else {
-                  // check if password matches
-                   bcrypt.compare(req.body.password, user.password, function(err, isMatch) {
-                      if (isMatch && !err) {
-                          // if user is found and password is right create a token
-                          var token = jwt.sign({_id: user._id, role: user.role}, config.secret,
-                          {   expiresIn: '1h',
-                          });
-                          res.setHeader('Content-Type', 'text/plain');
-                          // return the information including token as JSON
-                          res.json({
-                              success: true,
-                              token: token,
-                              role: 'client',
-                              user:user
-                          });
-                      } else {
-                        return  res.send({
-                              success: false,
-                              msg: 'Authentication failed. Wrong password.'
-                          });
-                      }
-                  });
-              }
-          })
-          ;
-
-      } else {
-          // check if password matches
-           bcrypt.compare(req.body.password, user.password, function(err, isMatch) {
-              if (isMatch && !err) {
-                  // if user is found and password is right create a token
-                  var token = jwt.sign({_id: user._id, role: user.role}, config.secret,  { expiresIn: '1h' });
-                  // return the information including token as JSON
+    try {
+        const user = await User.findOne({ email: req.body.email });
+    
+        if (!user) {
+          const client = await Client.findOne({ email: req.body.email });
+          if (client) {
+            bcrypt.compare(
+              req.body.password,
+              client.password,
+              function (err, isMatch) {
+                if (isMatch && !err) {
+                  var token = jwt.sign(
+                    { _id: client._id, role: client.role },
+                    secret,
+                    { expiresIn: "1h" }
+                  );
+    
                   res.json({
+                    success: true,
+                    token: token,
+                    role: "client",
+                    user: client,
+                  });
+                } else {
+                  res.send({
+                    success: false,
+                    msg: "Authentication failed. Wrong password.",
+                  });
+                }
+              }
+            );
+          } else {
+            const freelancer = await Freelancer.findOne({ email: req.body.email });
+            if (!freelancer) {
+              res.send({
+                success: false,
+                msg: "Authentication failed. User not found.",
+              });
+            } else {
+              bcrypt.compare(
+                req.body.password,
+                freelancer.password,
+                function (err, isMatch) {
+                  if (isMatch && !err) {
+                    var token = jwt.sign(
+                      { _id: freelancer._id, role: freelancer.role },
+                      secret,
+                      { expiresIn: "1h" }
+                    );
+    
+                    res.json({
                       success: true,
                       token: token,
-                      role: "admin",
-                      user:user
-                  });
-              } else {
-                return  res.send({
+                      role: "freelancer",
+                      user: freelancer,
+                    });
+                  } else {
+                    res.send({
                       success: false,
-                      msg: 'Authentication failed. Wrong password.'
-                  });
-              }
+                      msg: "Authentication failed. Wrong password.",
+                    });
+                  }
+                }
+              );
+            }
+          }
+        } else {
+          bcrypt.compare(req.body.password, user.password, function (err, isMatch) {
+            if (isMatch && !err) {
+              var token = jwt.sign({ _id: user._id, role: user.role }, secret, {
+                expiresIn: "1h",
+              });
+    
+              res.json({
+                success: true,
+                token: token,
+                role: "admin",
+                user: user,
+              });
+            } else {
+              res.send({
+                success: false,
+                msg: "Authentication failed. Wrong password.",
+              });
+            }
           });
+        }
+      } catch (err) {
+        console.log(err);
       }
-  });
 }
