@@ -28,6 +28,9 @@ exports.saveFreelancer = async (req, res, next) => {
     const freelancer = new Freelancer({
       firstName: req.body.firstName,
       lastName: req.body.lastName,
+      description:{type : String, required:true},
+      competences:{type: String, required:true},
+      cours:[{ type: mongoose.Schema.Types.ObjectId, ref: 'Cours'}],
       cin: req.body.cin,
       tel: req.body.tel,
       email: req.body.email,

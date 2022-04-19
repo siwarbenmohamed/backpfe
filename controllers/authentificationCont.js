@@ -69,8 +69,7 @@ exports.signin = async (req, res) =>{
                 if (isMatch && !err) {
                   var token = jwt.sign(
                     { _id: client._id, role: client.role },
-                    secret,
-                    { expiresIn: "1h" }
+                    secret
                   );
     
                   res.json({
@@ -102,8 +101,7 @@ exports.signin = async (req, res) =>{
                   if (isMatch && !err) {
                     var token = jwt.sign(
                       { _id: freelancer._id, role: freelancer.role },
-                      secret,
-                      { expiresIn: "1h" }
+                      secret
                     );
     
                     res.json({
@@ -125,9 +123,7 @@ exports.signin = async (req, res) =>{
         } else {
           bcrypt.compare(req.body.password, user.password, function (err, isMatch) {
             if (isMatch && !err) {
-              var token = jwt.sign({ _id: user._id, role: user.role }, secret, {
-                expiresIn: "1h",
-              });
+              var token = jwt.sign({ _id: user._id, role: user.role }, secret);
     
               res.json({
                 success: true,
